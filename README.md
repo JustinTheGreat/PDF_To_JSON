@@ -41,7 +41,7 @@ The extraction process is driven by the `extraction_params` list in `main.py`. E
 ```python
 extraction_params = [
     {
-        "field_name": "Report",                # Name for this extracted section
+        "field_name": "Report",                # Name for this extracted section - add "(+1)" behind the field_name if you want to merge the fields with another field
         "start_keyword": "Test Result:",       # Where to start extraction (Top based off keyword(s))
         "end_keyword": "Mock Result",          # Where to end extraction (Bottom based off keyword(s))
         "page_num": 0,                         # Page number (1st Page = 0, 2nd Page = 1 etc.)
