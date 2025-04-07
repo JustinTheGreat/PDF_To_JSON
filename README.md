@@ -97,7 +97,7 @@ All available parameters that can be used in your extraction definition:
 | `left_title` | boolean | Use left column as row titles for chart processing |
 | `priority_side` | string | Primary grouping for chart ('top' or 'left') |
 
-### Table-Specific Parameters
+### Table-Specific Parameters (Not recommended)
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
