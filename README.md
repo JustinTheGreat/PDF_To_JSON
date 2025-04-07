@@ -85,9 +85,9 @@ All available parameters that can be used in your extraction definition:
 | `vertical_margin` | float or null | Vertical distance to expand from keyword position |
 | `left_move` | float | Distance to move the left coordinate leftward (default: 0) |
 | `end_break_line_count` | integer or null | Stop extraction after this many newlines |
-| `forced_keywords` | array or null | List of keywords to add colons to if missing |
-| `remove_breaks_before` | array or null | List of words to remove line breaks ("\n") before them |
-| `remove_breaks_after` | array or null | List of words to remove line breaks ("\n") after them |
+| `forced_keywords` | array or null | List of keywords to add colons to if missing (Make sure it's a list data type even if it's single item ("[]")) |
+| `remove_breaks_before` | array or null | List of words to remove line breaks ("\n") before them (Make sure it's a list data type even if it's single item ("[]"))|
+| `remove_breaks_after` | array or null | List of words to remove line breaks ("\n") after them (Make sure it's a list data type even if it's single item ("[]"))|
 
 ### Chart-Specific Parameters
 
