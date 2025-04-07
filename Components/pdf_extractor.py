@@ -4,10 +4,12 @@ import re
 from Components.GeneralInfo import extract_serial_data, find_keyword_position, find_nth_occurrence_position
 from Components.business_rules import apply_business_rules
 
-def format_raw_text(field_name, raw_text, forced_keywords=None, remove_breaks_before=None, remove_breaks_after=None):
+def format_raw_text(field_name, raw_text, forced_keywords=None, remove_breaks_before=None, 
+                   remove_breaks_after=None, remove_colon_after=None):
     """
     Apply basic formatting to raw text before parsing. Can add colons to specified keywords,
     effectively converting them to keys, and remove line breaks before or after specified words.
+    Can also remove colons after specified keywords to prevent them from being treated as keys.
     
     Args:
         field_name (str): Name of the field for specific formatting rules
@@ -15,6 +17,7 @@ def format_raw_text(field_name, raw_text, forced_keywords=None, remove_breaks_be
         forced_keywords (list): List of keywords to add colons to if missing
         remove_breaks_before (list): List of words to remove line breaks before them
         remove_breaks_after (list): List of words to remove line breaks after them
+        remove_colon_after (list): List of keywords to remove colons after them
         
     Returns:
         str: Formatted raw text
@@ -56,6 +59,30 @@ def format_raw_text(field_name, raw_text, forced_keywords=None, remove_breaks_be
                 # Also handle case where keyword is at the end of the line
                 if modified_line.strip().endswith(keyword):
                     modified_line = modified_line.rstrip() + ": "
+            
+            modified_lines.append(modified_line)
+            
+        formatted_text = '\n'.join(modified_lines)
+    
+    # NEW FEATURE: Remove colons after specified keywords
+    if remove_colon_after and isinstance(remove_colon_after, list):
+        # Process each line
+        lines = formatted_text.split('\n')
+        modified_lines = []
+        
+        for line in lines:
+            modified_line = line
+            
+            # For each keyword, check if it's in the line followed by a colon
+            for keyword in remove_colon_after:
+                # Escape special regex characters in the keyword
+                escaped_keyword = re.escape(keyword)
+                
+                # Pattern matches the keyword followed by a colon and optional space
+                pattern = f"{escaped_keyword}:\\s*"
+                
+                # Replace with just the keyword and a space
+                modified_line = re.sub(pattern, f"{keyword} ", modified_line)
             
             modified_lines.append(modified_line)
             

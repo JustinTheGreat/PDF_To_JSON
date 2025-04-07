@@ -6,7 +6,6 @@ based on extraction parameters and coordinating the use of parsers
 and utilities.
 """
 import os
-os.chdir('Components')
 from Components.pdf_extractor import (
     parse_text_to_key_value, 
     format_raw_text, 
@@ -57,6 +56,9 @@ def extract_pdf_data(pdf_path, extraction_params):
         # Get the list of words to remove line breaks after (if any)
         remove_breaks_after = param_set.get('remove_breaks_after', None)
         
+        # Get the list of keywords to remove colons after (if any)
+        remove_colon_after = param_set.get('remove_colon_after', None)
+        
         # Get the end break line count (if specified)
         end_break_line_count = param_set.get('end_break_line_count', None)
         
@@ -74,6 +76,7 @@ def extract_pdf_data(pdf_path, extraction_params):
         debug_print(f"  forced_keywords: {forced_keywords}")
         debug_print(f"  remove_breaks_before: {remove_breaks_before}")
         debug_print(f"  remove_breaks_after: {remove_breaks_after}")
+        debug_print(f"  remove_colon_after: {remove_colon_after}")
         
         # Extract the data using the specified parameters
         debug_print(f"[DEBUG] Calling extract_serial_data")
@@ -100,7 +103,8 @@ def extract_pdf_data(pdf_path, extraction_params):
             original_raw_text, 
             forced_keywords,
             remove_breaks_before,
-            remove_breaks_after
+            remove_breaks_after,
+            remove_colon_after  # Pass the new parameter
         )
         
         # Debug the formatted text length
