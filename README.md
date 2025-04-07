@@ -1,6 +1,6 @@
 # PDF Extraction System: main.py Usage Guide
 
-This guide focuses on using `main.py` to extract structured data from PDF documents and explains how the extraction process works.
+This guide focuses on using the product to extract structured data from PDF documents and explains how the extraction process works.
 
 ## Overview of main.py
 
