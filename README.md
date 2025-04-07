@@ -1,4 +1,4 @@
-# PDF Extraction System: main.py Usage Guide
+# PDF Extraction System: Usage Guide
 
 This guide focuses on using the product to extract structured data from PDF documents and explains how the extraction process works.
 
