@@ -86,8 +86,8 @@ All available parameters that can be used in your extraction definition:
 | `left_move` | float | Distance to move the left coordinate leftward (default: 0) |
 | `end_break_line_count` | integer or null | Stop extraction after this many newlines |
 | `forced_keywords` | array or null | List of keywords to add colons to if missing |
-| `remove_breaks_before` | array or null | List of words to remove line breaks (\n) before them |
-| `remove_breaks_after` | array or null | List of words to remove line breaks (\n) after them |
+| `remove_breaks_before` | array or null | List of words to remove line breaks ("\n") before them |
+| `remove_breaks_after` | array or null | List of words to remove line breaks ("\n") after them |
 
 ### Chart-Specific Parameters
 
