@@ -155,6 +155,78 @@ The PDF extraction system follows this pipeline:
 
 ## Extraction Parameter Examples
 
+### Two-Pass Approach for Conditional Parameters
+
+This approach allows you to first extract document metadata and then apply different extraction parameters based on the content. For example, applying different formatting rules based on document version:
+
+```python
+import os
+import json
+import re
+from Components.pdf_processor import create_document_json
+from Components.GeneralInfo import extract_serial_data
+
+if __name__ == "__main__":
+    # Get PDF file path
+    pdf_path = input("Enter the path to the PDF file: ")
+    pdf_path = pdf_path.strip('"\'')
+    
+    # FIRST PASS: Extract document details to check version
+    doc_details_text = extract_serial_data(
+        pdf_path,
+        start_keyword="Documentnumber",
+        end_keyword="Version:",
+        page_num=0,
+        horiz_margin=200
+    )
+    
+    # Check if version 06 is present
+    is_version_06 = False
+    if doc_details_text and re.search(r'Version:\s*06\b', doc_details_text):
+        is_version_06 = True
+        print("Version 06 detected. Using specific parameters.")
+    
+    # SECOND PASS: Extract with version-specific parameters
+    extraction_params = [
+        # Common parameters for all versions
+        {
+            "field_name": "Document Details",
+            "start_keyword": "Documentnumber",
+            "end_keyword": "Version:",
+            "page_num": 0,
+            "horiz_margin": 200
+        }
+    ]
+    
+    # Add version-specific parameters
+    safety_params = {
+        "field_name": "Safety Data",
+        "start_keyword": "Safety tests",
+        "end_keyword": "Test Results",
+        "page_num": 1,
+        "horiz_margin": 300
+    }
+    
+    # Only include forced_keywords for version 06
+    if is_version_06:
+        safety_params["forced_keywords"] = ["High voltage test II"]
+    
+    extraction_params.append(safety_params)
+    
+    # Process the PDF with the conditional parameters
+    json_path = create_document_json(pdf_path, extraction_params)
+    
+    if json_path:
+        print("Created JSON File Successfully")
+    else:
+        print("Failed to create JSON file.")
+```
+
+This example demonstrates:
+1. First extracting document metadata to detect version
+2. Building extraction parameters conditionally based on the detected version
+3. Processing the PDF with the appropriate parameters
+
 ### Basic Text Extraction
 
 ```python
@@ -310,6 +382,7 @@ When using the (+1) suffix in field names:
 4. **Handle multi-page content**: Use the (+1) suffix for content that spans pages
 5. **Forced keywords**: Use when a PDF has inconsistent formatting
 6. **Line break handling**: Use when text layout affects parsing
+7. **Two-pass approach**: When you need to apply different parameters based on document content
 
 ## Debugging Extraction Issues
 
