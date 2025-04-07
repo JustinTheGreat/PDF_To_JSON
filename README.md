@@ -1,74 +1,63 @@
-# PDF Extraction and Processing Documentation
+# PDF Extraction System: main.py Usage Guide
 
-## Section 1: Getting Started
+This guide focuses on using `main.py` to extract structured data from PDF documents and explains how the extraction process works.
 
-### Installation and Setup
+## Overview of main.py
 
-1. Ensure you have Python installed on your system (Python 3.6 or later recommended).
+The `main.py` script serves as the entry point for the PDF extraction system. It:
 
-2. Install the required dependencies:
-   ```bash
-   pip install pdfplumber
-   ```
+1. Takes a PDF file path as input
+2. Defines extraction parameters for different sections
+3. Processes the PDF according to these parameters
+4. Creates a structured JSON output with the extracted data
 
-3. Clone or download the repository containing the script files:
-   - main.py
-   - Components/pdf_processor.py
-   - Components/pdf_extractor.py
-   - Components/GeneralInfo.py
-   - Components/business_rules.py
+## Basic Usage Example
 
-### Running the Script
-
-To start using the PDF extraction script:
-
-1. **Basic Usage:**
-   ```bash
-   python main.py
-   ```
-
-2. When prompted, enter the path to your PDF file:
-   ```
-   Enter the path to the PDF file: /path/to/your/file.pdf
-   ```
-
-3. The script will process the PDF and create a JSON file with the same name in the same directory as the PDF.
-
-### Configuration
-
-The extraction process is driven by the `extraction_params` list in `main.py`. Each dictionary in the list defines how to extract a specific section from the PDF:
+Here's a simple example of using `main.py`:
 
 ```python
-extraction_params = [
-    {
-        "field_name": "Report",                # Name for this extracted section
-        "start_keyword": "Test Result:",       # Where to start extraction (Top based off keyword(s))
-        "end_keyword": "Mock Result",          # Where to end extraction (Bottom based off keyword(s))
-        "page_num": 0,                         # Page number (1st Page = 0, 2nd Page = 1 etc.)
-        "horiz_margin": 300,                   # Horizontal width to capture (Set to be manual to cover deviations)
-        "end_keyword_occurrence": 1,           # Which occurrence of end_keyword to use
-        "forced_keywords": ["Mock Rasult"]     # Keywords to force as keys eg: Test Score 51 -> Test Score: 51
-    },
-    # Additional extraction parameter dictionaries...
-]
+import os
+import json
+from Components.pdf_processor import create_document_json
+
+if __name__ == "__main__":
+    # Get PDF file path from user
+    pdf_path = input("Enter the path to the PDF file: ")
+    pdf_path = pdf_path.strip('"\'')
+    
+    # Define extraction parameters
+    extraction_params = [
+        {
+            "field_name": "General Info",
+            "start_keyword": "Customer Information:",
+            "end_keyword": "Equipment Details",
+            "page_num": 0,
+            "horiz_margin": 300
+        }
+    ]
+    
+    # Process the PDF
+    json_path = create_document_json(pdf_path, extraction_params)
+    
+    # Display the results
+    if json_path:
+        with open(json_path, 'r', encoding='utf-8') as file:
+            content = json.load(file)
+            print("\nJSON Content:")
+            print(json.dumps(content, indent=2))
+    else:
+        print("Failed to create JSON file.")
 ```
 
-## Section 2: Functional Rules
+## How the Extraction Process Works
 
-### PDF Extraction Logic
+The PDF extraction system follows this pipeline:
 
-#### Bounding Box Creation
+### 1. Initial Extraction
+- Locates the `start_keyword` on the specified page
+- Creates a bounding box extending horizontally by `horiz_margin`
+- Extracts text within this area until the `end_keyword` or other limits
 
-1. **Keyword Position Detection:**
-   - The script locates the position of both `start_keyword` and `end_keyword` in the PDF.
-   - For `end_keyword`, it can target a specific occurrence (e.g., 1st, 2nd, 3rd instance).
-
-2. **Bounding Box Definition:**
-   - Creates a rectangular box starting from the `start_keyword`
-   - Width is determined by `horiz_margin` parameter
-   - Height extends to the position of the specified occurrence of `end_keyword`
-
-3. **Extraction Area:**
    ```
     <--Horizontal Margin Manually Set-->
    ┌─────────────────────────────────┐
@@ -80,270 +69,246 @@ extraction_params = [
    └─────────────────────────────────┘
    ```
 
-4. **Fallback Mechanisms:**
-   - If a bounding box has negative dimensions, the script swaps coordinates (Usually for landscape pdfs)
-   - If extraction fails, it attempts to extract using text-based approaches
-   - Multiple fallback methods ensure robust extraction
+### 2. Text Formatting
+- Adds colons to `forced_keywords` if they're missing
+- Removes line breaks before/after specified words
+- Prepares the text for structured parsing
 
-### Text Parsing Rules
+### 3. Key-Value Parsing
+- Identifies key-value pairs based on colons (e.g., "Name: John")
+- Creates a dictionary with these pairs
+- Collects unparsed lines for further processing
 
-#### Key-Value Extraction
+### 4. Field Merging
+- Combines fields marked with (+1) suffix (e.g., "Report" and "Report(+1)")
+- Maintains proper structure for duplicate keys
 
-1. **Colon-Based Parsing:**
-   - Text is parsed by identifying lines containing colons (`:`)
-   - Format: `Key: Value`
-   - Keys are text before the colon, values are text after the colon
+### 5. Chart Processing
+- Converts fields marked with (Chart) suffix to structured format
+- Organizes data based on chart parameters (top_title, left_title, etc.)
 
-2. **Multiple Key-Value Pairs:**
-   - Handles multiple key-value pairs on the same line
-   - Uses regex pattern: `([^:\s]+(?:\s+[^:\s]+)*):\s+(.*?)(?=\s+[^:\s]+:\s+|$)`
-   - This captures keys, colons, and values in sequence
+### 6. JSON Structure Creation
+- Creates the final JSON structure with:
+  - Field title
+  - Raw extracted text
+  - Formatted text
+  - Structured field data
 
-3. **Forced Keywords:**
-   - `forced_keywords` parameter can turn specified terms into keys
-   - If a keyword appears in text without a colon, adds a colon to make it a key
-   - For example: Test Score 51 -> Test Score: 51
+## Default Auto-Formatting
 
-4. **Value Handling:**
-   - Values can contain colons as long as they have no spaces in them (e.g., 12:34:56:78)
-   - Empty values are skipped
-   - Duplicate keys are handled by creating lists of values
+The system automatically performs these actions without additional parameters:
 
-5. **Merging Fields:**
-   - Fields with `(+1)` suffix are merged with their base fields
-   - Content is concatenated with proper separation markers
-   - Duplicate keys between fields are intelligently merged
+1. **Key-Value Detection**: Identifies "Key: Value" patterns and structures them
+2. **List Conversion**: Single values are kept as strings, multiple values become arrays
+3. **Empty Value Removal**: Keys with empty values are automatically removed
+4. **Line Break Normalization**: Ensures consistent line breaks in the formatted text
+5. **Duplicate Key Handling**: Merges duplicate keys into arrays
+6. **Whitespace Trimming**: Removes extra whitespace from keys and values
 
-## Section 3: File Overview
+## Available Extraction Parameters
 
-### main.py
-The entry point script that:
-- Prompts for PDF file path
-- Defines extraction parameters
-- Calls the document processing functions
-- Displays the resulting JSON content
+All available parameters that can be used in your extraction definition:
 
-### pdf_processor.py
-The main processing module that:
-- Orchestrates the extraction and parsing workflow
-- Creates bounding boxes and extracts text
-- Manages field merging for related sections
-- Handles the creation of the final JSON structure
-- Includes specialized functions for cleaning and post-processing data
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `field_name` | string | **Required**. Name for the extracted field (use (+1) suffix for continuation fields and (Chart) suffix for chart conversion) |
+| `start_keyword` | string | **Required**. Keyword to start extraction from |
+| `end_keyword` | string or null | Keyword to end extraction at (can be null if using line breaks) |
+| `page_num` | integer | Page number to extract from (0-based, default: 0) |
+| `horiz_margin` | float | Horizontal distance to expand from start position (default: 200) |
+| `start_keyword_occurrence` | integer | Which occurrence of start_keyword to use (default: 1) |
+| `end_keyword_occurrence` | integer | Which occurrence of end_keyword to stop at (default: 1) |
+| `vertical_margin` | float or null | Vertical distance to expand from keyword position |
+| `left_move` | float | Distance to move the left coordinate leftward (default: 0) |
+| `end_break_line_count` | integer or null | Stop extraction after this many newlines |
+| `forced_keywords` | array or null | List of keywords to add colons to if missing |
+| `remove_breaks_before` | array or null | List of words to remove line breaks before them |
+| `remove_breaks_after` | array or null | List of words to remove line breaks after them |
 
-### pdf_extractor.py
-The extraction utility that:
-- Handles formatting of raw text
-- Implements the key-value parsing algorithm
-- Applies business rules to extracted content
-- Processes special keywords and forces them as keys when needed
+### Chart-Specific Parameters
 
-### GeneralInfo.py
-Core extraction functionality that:
-- Implements the bounding box creation logic
-- Finds keyword positions within PDF text
-- Manages the extraction of text based on coordinates
-- Provides fallback extraction methods for edge cases
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `top_title` | boolean | Use top row as column titles for chart processing |
+| `left_title` | boolean | Use left column as row titles for chart processing |
+| `priority_side` | string | Primary grouping for chart ('top' or 'left') |
 
-### business_rules.py
-Business logic module that:
-- Applies domain-specific formatting rules
-- Contains custom transformations for specific fields
-- Allows extension for new business requirements
-- Currently implements simple rules like removing specific keys
+### Table-Specific Parameters
 
-## Section 4: Adding Custom Business Rules
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `table_top_labeling` | boolean | Use top row as keys for table processing |
+| `table_left_labeling` | boolean | Use left column as keys for table processing |
+| `table_structure` | string | Structure type for table ('top_only', 'left_only', 'top_main', 'left_main') |
+| `min_column_width` | integer | Minimum width for columns when using space delimiter |
 
-### Step 1: Update the business_rules.py File
+## Extraction Parameter Examples
 
-Add your custom formatting functions for specific fields:
+### Basic Text Extraction
 
 ```python
-def format_my_custom_field(data_dict):
-    """
-    Custom formatting function for "My Custom Field"
-    
-    Args:
-        data_dict (dict): Dictionary of data to format
-    """
-    # Example: Combine first name and last name fields
-    if "First name" in data_dict and "Last name" in data_dict:
-        data_dict["Full name"] = f"{data_dict['First name']} {data_dict['Last name']}"
-    
-    # Example: Convert values to uppercase
-    if "Code" in data_dict:
-        data_dict["Code"] = data_dict["Code"].upper()
-    
-    # Example: Remove unwanted fields
-    if "Internal ID" in data_dict:
-        del data_dict["Internal ID"]
+{
+    "field_name": "General Info",
+    "start_keyword": "Customer Information:",
+    "end_keyword": "Equipment Details",
+    "page_num": 0,
+    "horiz_margin": 300
+}
 ```
 
-### Step 2: Register Your Function in apply_business_rules()
-
-Update the `apply_business_rules` function to call your custom function:
+### Using Vertical Margin
 
 ```python
-def apply_business_rules(field_name, data_dict, unparsed_lines):
-    """
-    Apply all business-specific rules based on the field name.
-    
-    Args:
-        field_name (str): Name of the field
-        data_dict (dict): Dictionary of parsed data
-        unparsed_lines (list): Lines that couldn't be parsed with simple key-value rules
-        
-    Returns:
-        dict: Dictionary with business rules applied
-    """
-    # Create a copy to avoid modifying the original
-    result_dict = data_dict.copy()
-    
-    # Apply field-specific formatting rules
-    if field_name == "Special Data":
-        format_special_data(result_dict)
-    elif field_name == "My Custom Field":
-        format_my_custom_field(result_dict)
-    # Add more field-specific rules here
-    
-    # Process unparsed lines if needed for this field
-    if field_name == "Data With Tables" and unparsed_lines:
-        process_table_data(result_dict, unparsed_lines)
-    
-    return result_dict
+{
+    "field_name": "Equipment Specs",
+    "start_keyword": "Equipment Details",
+    "end_keyword": None,  # No end keyword
+    "page_num": 0,
+    "horiz_margin": 350,
+    "vertical_margin": 200  # Limit vertical extraction to 200 points
+}
 ```
 
-### Step 3: Processing Unparsed Lines
-
-For complex data that doesn't fit the key-value pattern (like tables):
+### Using Forced Keywords
 
 ```python
-def process_table_data(data_dict, unparsed_lines):
-    """
-    Process unparsed lines that might contain tabular data.
-    
-    Args:
-        data_dict (dict): Dictionary to add processed data to
-        unparsed_lines (list): Lines that couldn't be parsed with key-value pattern
-    """
-    if not unparsed_lines:
-        return
-        
-    # Example: Parse a simple table
-    table_data = []
-    headers = None
-    
-    for line in unparsed_lines:
-        # Skip empty lines
-        if not line.strip():
-            continue
-            
-        # Split by whitespace or another delimiter
-        columns = line.split()
-        
-        # First non-empty line is the header
-        if not headers:
-            headers = columns
-        else:
-            # Create a row as a dictionary
-            if len(columns) == len(headers):
-                row = {headers[i]: columns[i] for i in range(len(headers))}
-                table_data.append(row)
-    
-    # Add the table data to the result dictionary
-    if table_data:
-        data_dict["Table"] = table_data
+{
+    "field_name": "Technical Parameters",
+    "start_keyword": "Parameters",
+    "end_keyword": "Test Results",
+    "page_num": 1,
+    "horiz_margin": 400,
+    "forced_keywords": ["Serial Number", "Model", "Voltage", "Current", "Power"]
+}
 ```
 
-### Step 4: Update extraction_params in main.py
-
-Add your new field to the extraction parameters:
+### Line Break Handling
 
 ```python
-extraction_params.append({
-    "field_name": "My Custom Field",
-    "start_keyword": "Custom Section:",
-    "end_keyword": "Next Section",
+{
+    "field_name": "Test Results",
+    "start_keyword": "Test Results",
+    "end_keyword": "Certification",
+    "page_num": 1,
+    "horiz_margin": 450,
+    "remove_breaks_before": ["passed", "failed", "warning"],
+    "remove_breaks_after": ["Test:", "Result:"]
+}
+```
+
+### Limited Line Breaks
+
+```python
+{
+    "field_name": "Certification",
+    "start_keyword": "Certification",
+    "end_keyword": None,  # No end keyword
+    "page_num": 1,
+    "horiz_margin": 350,
+    "end_break_line_count": 10  # Stop after 10 line breaks
+}
+```
+
+### Multi-Page Content with Continuation
+
+```python
+# First page
+{
+    "field_name": "Maintenance Records",
+    "start_keyword": "Maintenance History",
+    "end_keyword": "End of Records",
     "page_num": 2,
-    "horiz_margin": 200,
-    "end_keyword_occurrence": 1,
-    "forced_keywords": ["Important Note", "Reference Code"]
-})
+    "horiz_margin": 500
+},
+# Continuation on next page
+{
+    "field_name": "Maintenance Records(+1)",
+    "start_keyword": "Continued from previous page",
+    "end_keyword": "Recommendations",
+    "page_num": 3,
+    "horiz_margin": 500
+}
 ```
 
-### Best Practices for Business Rules
+### Chart Data Processing
 
-1. **Modular Design:** Create separate functions for each field or rule type.
-2. **Defensive Programming:** Always check if keys exist before operating on them.
-3. **Documentation:** Add detailed docstrings to explain the purpose of each rule.
-4. **Testing:** Test rules with sample data before applying to production PDFs.
-5. **Consistency:** Maintain a consistent approach to how you transform data.
-
-## Section 5: System Architecture
-
-```mermaid
-graph TD
-    main[main.py] --> |calls| processor[pdf_processor.py]
-    processor --> |calls| extractor[pdf_extractor.py]
-    processor --> |calls| general[GeneralInfo.py]
-    extractor --> |calls| general
-    extractor --> |calls| business[business_rules.py]
-    
-    %% Function connections
-    main -- "create_document_json()" --> processor
-    processor -- "extract_pdf_data()" --> processor
-    processor -- "process_field_merging()" --> processor
-    processor -- "extract_serial_data()" --> general
-    processor -- "parse_text_to_key_value()" --> extractor
-    processor -- "format_raw_text()" --> extractor
-    processor -- "apply_special_formatting()" --> extractor
-    extractor -- "apply_business_rules()" --> business
-    general -- "find_keyword_position()" --> general
-    general -- "find_nth_occurrence_position()" --> general
-    
-    %% Styling
-    classDef main fill:#f9d5e5,stroke:#333,stroke-width:2px;
-    classDef processor fill:#eeeeee,stroke:#333,stroke-width:2px;
-    classDef components fill:#d5e8f9,stroke:#333,stroke-width:1px;
-    
-    class main main;
-    class processor processor;
-    class extractor,general,business components;
-    
-    %% Legend
-    subgraph Legend
-        main_node[main.py]
-        processor_node[Processing Module]
-        component_node[Component Module]
-    end
-    
-    class main_node main;
-    class processor_node processor;
-    class component_node components;
+```python
+{
+    "field_name": "Performance Data(Chart)",
+    "start_keyword": "Performance Metrics",
+    "end_keyword": "Graph Data End",
+    "page_num": 4,
+    "horiz_margin": 450,
+    "top_title": True,  # Use top row as column titles
+    "left_title": True,  # Use left column as row titles
+    "priority_side": "left"  # Make left titles the primary grouping
+}
 ```
 
-### Flow Description
+### Table Processing
 
-1. **User Interaction**:
-   - User runs `main.py` and provides the PDF file path
-   - `main.py` defines extraction parameters and calls `create_document_json()`
+```python
+{
+    "field_name": "Components List",
+    "start_keyword": "Component Inventory",
+    "end_keyword": "Inventory End",
+    "page_num": 5,
+    "horiz_margin": 500,
+    "table_top_labeling": True,
+    "table_left_labeling": True,
+    "table_structure": "top_main",
+    "min_column_width": 5
+}
+```
 
-2. **Document Processing**:
-   - `pdf_processor.py` orchestrates the extraction workflow
-   - It calls `extract_pdf_data()` for each parameter set
-   - Results are merged and formatted into a JSON structure
+## Understanding the Extraction Logic
 
-3. **Text Extraction**:
-   - `GeneralInfo.py` handles the core PDF text extraction
-   - It locates keywords and creates bounding boxes
-   - It extracts text based on the defined coordinates
+### Bounding Box Creation
 
-4. **Data Parsing**:
-   - `pdf_extractor.py` formats the raw text
-   - It parses the text into key-value pairs
-   - It applies special formatting based on field names
+The system creates a bounding box for extraction:
+- Starts at the `start_keyword` position
+- Extends horizontally by `horiz_margin` points
+- Extends vertically to `end_keyword` or by `vertical_margin` if specified
+- Can be shifted left by `left_move` points
 
-5. **Business Rules**:
-   - `business_rules.py` applies domain-specific transformations
-   - It formats special fields and handles unparsed lines
-   - It can be extended for custom business requirements
+### Keyword Occurrence Selection
+
+- `start_keyword_occurrence` selects which occurrence of the start keyword to use
+- `end_keyword_occurrence` selects which occurrence of the end keyword to stop at
+- This allows targeting specific sections when keywords appear multiple times
+
+### Alternative Extraction Methods
+
+When the default bounding box method fails, the system tries:
+1. **Text-based extraction**: Finds the start and end keywords in the full page text
+2. **Line-based extraction**: Extracts by line numbers instead of coordinates
+
+### Field Continuation Logic
+
+When using the (+1) suffix in field names:
+1. Extracts the base field and continuation field separately
+2. Merges their text with a separator
+3. Combines their structured data, properly handling duplicates
+4. Preserves the base field name in the final output
+
+## Tips for Effective Extraction
+
+1. **Start broad, then narrow down**: Begin with wider margins and refine based on results
+2. **Use visual inspection**: Check PDF layouts to identify start/end keywords
+3. **Try multiple approaches**: If one set of parameters doesn't work, try different keywords or boundaries
+4. **Handle multi-page content**: Use the (+1) suffix for content that spans pages
+5. **Forced keywords**: Use when a PDF has inconsistent formatting
+6. **Line break handling**: Use when text layout affects parsing
+
+## Debugging Extraction Issues
+
+If extraction isn't working as expected:
+
+1. Check that the `start_keyword` exists exactly as specified in the PDF
+2. Verify the page number (remember page numbering starts at 0)
+3. Try increasing the `horiz_margin` to capture more content
+4. Use `start_keyword_occurrence` if the keyword appears multiple times
+5. For content spanning pages, ensure the continuation field uses the (+1) suffix
+6. Check for invisible characters or formatting that might affect keyword matching
+
+*Side Note: I'd recommend feeding all the files into AI (Claude.ai recommended) to help give you more specific use-case guide with this program*

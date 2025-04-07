@@ -4,15 +4,17 @@ import re
 from Components.GeneralInfo import extract_serial_data, find_keyword_position, find_nth_occurrence_position
 from Components.business_rules import apply_business_rules
 
-def format_raw_text(field_name, raw_text, forced_keywords=None):
+def format_raw_text(field_name, raw_text, forced_keywords=None, remove_breaks_before=None, remove_breaks_after=None):
     """
     Apply basic formatting to raw text before parsing. Can add colons to specified keywords,
-    effectively converting them to keys.
+    effectively converting them to keys, and remove line breaks before or after specified words.
     
     Args:
         field_name (str): Name of the field for specific formatting rules
         raw_text (str): Raw text to format
         forced_keywords (list): List of keywords to add colons to if missing
+        remove_breaks_before (list): List of words to remove line breaks before them
+        remove_breaks_after (list): List of words to remove line breaks after them
         
     Returns:
         str: Formatted raw text
@@ -22,6 +24,14 @@ def format_raw_text(field_name, raw_text, forced_keywords=None):
     
     # Basic formatting to ensure proper line breaks and spacing
     formatted_text = raw_text.strip()
+    
+    # Remove line breaks before specified words if requested
+    if remove_breaks_before and isinstance(remove_breaks_before, list):
+        formatted_text = remove_line_breaks_before_words(formatted_text, remove_breaks_before)
+    
+    # Remove line breaks after specified words if requested
+    if remove_breaks_after and isinstance(remove_breaks_after, list):
+        formatted_text = remove_line_breaks_after_words(formatted_text, remove_breaks_after)
     
     # If we have keywords to force as keys
     if forced_keywords and isinstance(forced_keywords, list):
@@ -152,6 +162,103 @@ def parse_text_to_key_value(text):
             parsed_data[key] = parsed_data[key][0]
     
     return parsed_data, unparsed_lines
+
+def remove_line_breaks_before_words(text, word_list):
+    """
+    Remove line breaks that occur before any of the specified words in the word_list
+    and replace them with a single space.
+    
+    Args:
+        text (str): The text to process
+        word_list (list): List of words to check for line breaks before them
+        
+    Returns:
+        str: The processed text with line breaks removed before specified words
+    """
+    if not text or not word_list:
+        return text
+    
+    # Convert the list to a set for faster lookups
+    word_set = set(word_list)
+    
+    # Split the text into lines
+    lines = text.split('\n')
+    
+    # Process each line
+    result = []
+    skip_next = False
+    
+    for i, line in enumerate(lines):
+        # If this line should be skipped (because it was already appended to the previous line)
+        if skip_next:
+            skip_next = False
+            continue
+            
+        # If this is the last line, just add it
+        if i == len(lines) - 1:
+            result.append(line)
+            continue
+            
+        # Check if the next line starts with any of the specified words
+        next_line = lines[i + 1].strip()
+        
+        # Get the first word of the next line
+        next_first_word = next_line.split()[0] if next_line and ' ' in next_line else next_line
+        
+        if next_first_word in word_set:
+            # Append the next line to the current line with a space in between
+            result.append(line + ' ' + next_line)
+            skip_next = True
+        else:
+            # Just add the current line as is
+            result.append(line)
+    
+    # Join the processed lines
+    return '\n'.join(result)
+
+def remove_line_breaks_after_words(text, word_list):
+    """
+    Remove line breaks that occur after any of the specified words in the word_list
+    and replace them with a single space.
+    
+    Args:
+        text (str): The text to process
+        word_list (list): List of words to check for line breaks after them
+        
+    Returns:
+        str: The processed text with line breaks removed after specified words
+    """
+    if not text or not word_list:
+        return text
+    
+    # Convert the list to a set for faster lookups
+    word_set = set(word_list)
+    
+    # Split the text into lines
+    lines = text.split('\n')
+    
+    # Process each line
+    result = []
+    i = 0
+    
+    while i < len(lines):
+        current_line = lines[i].strip()
+        
+        # Check if the current line ends with any of the specified words
+        last_word = current_line.split()[-1] if current_line and ' ' in current_line else current_line
+        
+        if last_word in word_set and i < len(lines) - 1:
+            # Combine with the next line
+            next_line = lines[i + 1].strip()
+            result.append(current_line + ' ' + next_line)
+            i += 2  # Skip the next line since we've combined it
+        else:
+            # Add the current line as is
+            result.append(current_line)
+            i += 1
+    
+    # Join the processed lines
+    return '\n'.join(result)
 
 def apply_special_formatting(field_name, parsed_data, unparsed_lines):
     """
