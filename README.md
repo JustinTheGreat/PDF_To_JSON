@@ -11,6 +11,15 @@ The `main.py` script serves as the entry point for the PDF extraction system. It
 3. Processes the PDF according to these parameters
 4. Creates a structured JSON output with the extracted data
 
+## Getting Started
+### Installation and Setup
+Ensure you have Python installed on your system (Python 3.6 or later recommended).
+
+Install the required dependencies:
+```
+pip install pdfplumber
+```
+
 ## Basic Usage Example
 
 Here's a simple example of using `main.py`:
@@ -48,51 +57,6 @@ if __name__ == "__main__":
     else:
         print("Failed to create JSON file.")
 ```
-
-## How the Extraction Process Works
-
-The PDF extraction system follows this pipeline:
-
-### 1. Initial Extraction
-- Locates the `start_keyword` on the specified page
-- Creates a bounding box extending horizontally by `horiz_margin`
-- Extracts text within this area until the `end_keyword` or other limits
-
-   ```
-    <--Horizontal Margin Manually Set-->
-   ┌─────────────────────────────────┐
-   │ Start Keyword                   │
-   │ Content to extract...           │
-   │ ...                             │
-   │ ...                             │
-   │ End Keyword                     │
-   └─────────────────────────────────┘
-   ```
-
-### 2. Text Formatting
-- Adds colons to `forced_keywords` if they're missing
-- Removes line breaks before/after specified words
-- Prepares the text for structured parsing
-
-### 3. Key-Value Parsing
-- Identifies key-value pairs based on colons (e.g., "Name: John")
-- Creates a dictionary with these pairs
-- Collects unparsed lines for further processing
-
-### 4. Field Merging
-- Combines fields marked with (+1) suffix (e.g., "Report" and "Report(+1)")
-- Maintains proper structure for duplicate keys
-
-### 5. Chart Processing
-- Converts fields marked with (Chart) suffix to structured format
-- Organizes data based on chart parameters (top_title, left_title, etc.)
-
-### 6. JSON Structure Creation
-- Creates the final JSON structure with:
-  - Field title
-  - Raw extracted text
-  - Formatted text
-  - Structured field data
 
 ## Default Auto-Formatting
 
@@ -141,6 +105,52 @@ All available parameters that can be used in your extraction definition:
 | `table_left_labeling` | boolean | Use left column as keys for table processing |
 | `table_structure` | string | Structure type for table ('top_only', 'left_only', 'top_main', 'left_main') |
 | `min_column_width` | integer | Minimum width for columns when using space delimiter |
+
+## How the Extraction Process Works
+
+The PDF extraction system follows this pipeline:
+
+### 1. Initial Extraction
+- Locates the `start_keyword` on the specified page
+- Creates a bounding box extending horizontally by `horiz_margin`
+- Extracts text within this area until the `end_keyword` or other limits
+
+   ```
+    <--Horizontal Margin Manually Set-->
+   ┌─────────────────────────────────┐
+   │ Start Keyword                   │
+   │ Content to extract...           │
+   │ ...                             │
+   │ ...                             │
+   │ End Keyword                     │
+   └─────────────────────────────────┘
+   ```
+
+### 2. Text Formatting
+- Adds colons to `forced_keywords` if they're missing
+- Removes line breaks before/after specified words
+- Prepares the text for structured parsing
+
+### 3. Key-Value Parsing
+- Identifies key-value pairs based on colons (e.g., "Name: John")
+- Creates a dictionary with these pairs
+- Collects unparsed lines for further processing
+
+### 4. Field Merging
+- Combines fields marked with (+1) suffix (e.g., "Report" and "Report(+1)")
+- Maintains proper structure for duplicate keys
+
+### 5. Chart Processing
+- Converts fields marked with (Chart) suffix to structured format
+- Organizes data based on chart parameters (top_title, left_title, etc.)
+
+### 6. JSON Structure Creation
+- Creates the final JSON structure with:
+  - Field title
+  - Raw extracted text
+  - Formatted text
+  - Structured field data
+
 
 ## Extraction Parameter Examples
 
