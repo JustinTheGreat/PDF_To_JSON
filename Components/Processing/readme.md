@@ -100,7 +100,7 @@ extraction_params = [
 json_path = process_pdf(pdf_path, extraction_params)
 ```
 
-## Benefits of the New Structure
+## Benefits of the Structure
 
 This modular approach offers several advantages:
 
