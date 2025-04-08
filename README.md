@@ -1,28 +1,111 @@
 # PDF Extraction System: Usage Guide
 
-This guide focuses on using the product to extract structured data from PDF documents and explains how the extraction process works.
+This guide focuses on using the PDF Extraction System to extract structured data from PDF documents and explains how both the command-line interface (`main.py`) and the graphical user interface (`directory_processor.py`) work.
 
-## Overview of main.py
+## System Overview
 
-The `main.py` script serves as the entry point for the PDF extraction system. It:
+This PDF Extraction System provides two ways to process PDF files:
 
-1. Takes a PDF file path as input
-2. Defines extraction parameters for different sections
-3. Processes the PDF according to these parameters
-4. Creates a structured JSON output with the extracted data
+1. **Command-line interface** (`main.py`) - Process individual PDF files
+2. **Graphical user interface** (`directory_processor.py`) - Scan directories for PDF files and batch process them
 
 ## Getting Started
+
 ### Installation and Setup
+
 Ensure you have Python installed on your system (Python 3.6 or later recommended).
 
 Install the required dependencies:
 ```
-pip install pdfplumber
+pip install pdfplumber tkinter
 ```
 
-## Basic Usage Example
+## Using the Graphical Interface (directory_processor.py)
 
-Here's a simple example of using `main.py`:
+The GUI application allows you to scan directories for PDF files containing specific keywords and batch process them.
+
+### Running the Application
+
+```bash
+python main.py
+```
+
+This launches the PDF Processor application.
+
+### Step-by-Step Usage Guide
+
+1. **Configure Input and Output**:
+   - **Input Directory**: Click "Browse..." to select the directory containing PDF files to process.
+   - **Output Directory**: Click "Browse..." to select where processed files should be saved.
+   - **Subfolder Options**: 
+     - Check "Create subfolder for output" to save results in a dedicated subfolder.
+     - Enter a name for this subfolder (default: "Processed_Files").
+   - **Search Keyword**: Enter the keyword to search for in PDF files (default: "BA:").
+   - **Processor Script**: Click "Browse..." to select the Python script that will process the PDFs.
+
+2. **Scan for Files**:
+   - Click the "Scan Directory" button to find PDFs containing your keyword.
+   - Files matching the criteria will appear in the "Found Files" section.
+   - Use "Select All" or "Deselect All" to manage the file selection.
+
+3. **Process Files**:
+   - Select the files you want to process from the list.
+   - Click "Process Selected Files" to begin processing.
+   - The Processing Log will show progress and results.
+   - Processed JSON files will be saved to your specified output location.
+
+## Creating Custom Processor Scripts
+
+You can create your own processor scripts that extract specific information from PDFs. Here's a basic template:
+
+```python
+import os
+from Components.Processing.document import create_document_json
+
+# Define extraction parameters
+extraction_params = [
+    {
+        "field_name": "Technical Data",
+        "start_keyword": "Serial no.:",
+        "end_keyword": "[kW]",
+        "page_num": 0,
+        "horiz_margin": 200,
+        "end_keyword_occurrence": 3
+    },
+    # Add more parameter sets as needed
+]
+
+def process_pdf_file(pdf_path):
+    """
+    Process a PDF file and create a JSON with extracted data.
+    
+    Args:
+        pdf_path (str): Path to the PDF file
+        
+    Returns:
+        str: Path to the created JSON file or None if processing failed
+    """
+    # Create JSON from the PDF data
+    json_path = create_document_json(pdf_path, extraction_params)
+    
+    if json_path:
+        print(f"Successfully processed PDF: {pdf_path}")
+        print(f"JSON output saved to: {json_path}")
+        return json_path
+    else:
+        print(f"Failed to process PDF: {pdf_path}")
+        return None
+
+# This allows the script to be run directly or imported as a module
+if __name__ == "__main__":
+    # When run directly, prompt for a PDF file
+    pdf_path = input("Enter the path to the PDF file: ")
+    process_pdf_file(pdf_path)
+```
+
+## Command-line Interface (main.py)
+
+For processing individual files, you can use the `main.py` script:
 
 ```python
 import os
@@ -152,7 +235,6 @@ The PDF extraction system follows this pipeline:
   - Formatted text
   - Structured field data
 
-
 ## Extraction Parameter Examples
 
 ### Two-Pass Approach for Conditional Parameters
@@ -221,11 +303,6 @@ if __name__ == "__main__":
     else:
         print("Failed to create JSON file.")
 ```
-
-This example demonstrates:
-1. First extracting document metadata to detect version
-2. Building extraction parameters conditionally based on the detected version
-3. Processing the PDF with the appropriate parameters
 
 ### Basic Text Extraction
 
@@ -344,36 +421,6 @@ This example demonstrates:
 }
 ```
 
-## Understanding the Extraction Logic
-
-### Bounding Box Creation
-
-The system creates a bounding box for extraction:
-- Starts at the `start_keyword` position
-- Extends horizontally by `horiz_margin` points
-- Extends vertically to `end_keyword` or by `vertical_margin` if specified
-- Can be shifted left by `left_move` points
-
-### Keyword Occurrence Selection
-
-- `start_keyword_occurrence` selects which occurrence of the start keyword to use
-- `end_keyword_occurrence` selects which occurrence of the end keyword to stop at
-- This allows targeting specific sections when keywords appear multiple times
-
-### Alternative Extraction Methods
-
-When the default bounding box method fails, the system tries:
-1. **Text-based extraction**: Finds the start and end keywords in the full page text
-2. **Line-based extraction**: Extracts by line numbers instead of coordinates
-
-### Field Continuation Logic
-
-When using the (+1) suffix in field names:
-1. Extracts the base field and continuation field separately
-2. Merges their text with a separator
-3. Combines their structured data, properly handling duplicates
-4. Preserves the base field name in the final output
-
 ## Tips for Effective Extraction
 
 1. **Start broad, then narrow down**: Begin with wider margins and refine based on results
@@ -384,7 +431,17 @@ When using the (+1) suffix in field names:
 6. **Line break handling**: Use when text layout affects parsing
 7. **Two-pass approach**: When you need to apply different parameters based on document content
 
-## Debugging Extraction Issues
+## Troubleshooting
+
+### GUI Application Issues
+
+If you encounter issues with the directory processor application:
+
+1. **Processing Log Not Showing**: If log messages aren't appearing, try resizing the application window
+2. **Duplicate JSON Files**: The application is designed to create JSON files only in the specified output directory
+3. **File Access Errors**: Ensure you have write permission in both the source and output directories
+
+### Extraction Issues
 
 If extraction isn't working as expected:
 
@@ -395,4 +452,4 @@ If extraction isn't working as expected:
 5. For content spanning pages, ensure the continuation field uses the (+1) suffix
 6. Check for invisible characters or formatting that might affect keyword matching
 
-*Side Note: I'd recommend feeding all the files into AI (Claude.ai recommended) to help give you more specific use-case guide with this program*
+*If you encounter persistent issues, consider using AI tools like Claude.ai to help develop specific extraction parameters for your documents.*
