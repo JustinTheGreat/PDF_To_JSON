@@ -20,7 +20,7 @@ Install the required dependencies:
 pip install pdfplumber tkinter
 ```
 
-## Using the Graphical Interface (directory_processor.py)
+## Using the Graphical Interface (main.py)
 
 The GUI application allows you to scan directories for PDF files containing specific keywords and batch process them.
 
