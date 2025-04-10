@@ -1,4 +1,4 @@
-# PDF Extraction System: Usage Guide
+# PDF Extraction System (To JSON): Usage Guide
 
 This guide focuses on using the PDF Extraction System to extract structured data from PDF documents and explains how both the command-line interface (`main.py`) and the graphical user interface (`directory_processor.py`) work.
 
